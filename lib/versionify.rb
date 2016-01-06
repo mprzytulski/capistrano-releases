@@ -1,4 +1,6 @@
 require 'jira'
+require 'podio'
+require 'json'
 
 module Versionify
   class Manager
@@ -10,6 +12,10 @@ module Versionify
 
       def version(version)
         "#{fetch(:versionify_jira_url)}/browse/#{@project.key}/fixforversion/#{version.id}"
+      end
+
+      def issue(issue)
+        "#{fetch(:versionify_jira_url)}/browse/#{issue.key}"
       end
     end
 
@@ -27,7 +33,8 @@ module Versionify
       @client = JIRA::Client.new(options)
       @project = @client.Project.find(fetch(:versionify_jira_project_id))
 
-      @url_generator = UrlGenerator.new(@project)
+      @generator = UrlGenerator.new(@project)
+      @podio = PodioPublisher.new(@project)
     end
 
 
@@ -52,11 +59,9 @@ module Versionify
 
 
     def get_changelog(version)
-      changelog = "Version: #{version.name}\n"
-      changelog += "---------------------------------\n"
-      changelog += "Issues:\n"
+      changelog = ""
       @client.Issue.jql("fixVersion = #{version.name}").each do |issue|
-        changelog += " - [#{issue.key}] - #{issue.summary}\n"
+        changelog += " - [#{issue.key}](#{@generator.issue(issue)}) - #{issue.summary}\n"
       end
 
       changelog
@@ -72,14 +77,9 @@ module Versionify
       @project.versions.select { |item| !item.released}[0]
     end
 
-
-    def project
-      @project
-    end
-
-    def generator
-      @url_generator
-    end
+    attr_accessor :project
+    attr_accessor :podio
+    attr_accessor :generator
 
 
     def assign_to_version(issue, version)
@@ -106,12 +106,64 @@ module Versionify
       self.transist_to(issue, state)
     end
 
+    def announce(message, version)
+      response = @client.get(
+          "/rest/api/2/version/#{version.id}/remotelink"
+      )
+
+      links = JSON.parse(response.body)['links']
+
+      if links.each { |link| link.key?('podio_status_id') }.length == 0
+        podio_status = @podio.publish(message)
+
+        @client.post(
+            "/rest/api/2/version/#{version.id}/remotelink",
+            {:podio_status_id => podio_status}.to_json
+        )
+      end
+
+      if links.each { |link| link.key?('slack') }.length == 0
+
+      end
+
+    end
+
   end
 
   class PodioPublisher
-    def initialize
-      Podio.setup(:api_key => fetch(:versionify_podio_api_key), :api_secret => fetch(:versionify_podio_api_secret))
-      Podio.client.authenticate_with_credentials(fetch(:versionify_podio_username), fetch(:versionify_podio_password))
+    def initialize(project)
+      @project = project
+
+      Podio.setup(
+          :api_key => fetch(:versionify_podio_api_key),
+          :api_secret => fetch(:versionify_podio_api_secret)
+      )
+
+      Podio.client.authenticate_with_credentials(
+          fetch(:versionify_podio_username),
+          fetch(:versionify_podio_password)
+      )
+    end
+
+    def publish(message)
+      Podio::Status.create(
+        fetch(:versionify_podio_space_id), {
+          :value => message
+        }
+      )
+    end
+  end
+
+
+  class SlackPublisher
+    def initialize(project)
+      @project = project
+
+
+    end
+
+    def publish(message)
+
     end
   end
 
