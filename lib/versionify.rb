@@ -83,9 +83,14 @@ module Versionify
 
 
     def assign_to_version(issue, version)
-      issue.save({'fields' => {'fixVersions' => [{'id' => version.id}]}})
+      if issue.save({'fields' => {'fixVersions' => [{'id' => version.id}]}})
+        puts "Issue #{issue.key} assigned to version: #{version.name}"
 
-      self.transist_to(issue, fetch(:versionify_jira_relesable_status))
+        issue.fetch
+        self.transist_to(issue, fetch(:versionify_jira_relesable_status))
+      else
+        puts "Failed to assign given issue (#{issue.key}) to version: #{version.id}"
+      end
 
       issue
     end
@@ -99,9 +104,12 @@ module Versionify
       end
 
       transition = issue.transitions.build
-      transition.save('transition' => {'id' => transision_map[issue.status.id]})
+      unless transition.save('transition' => {'id' => transision_map[issue.status.id]})
+        puts "Failed to perform transition"
+        return
+      end
 
-      issue.fetch
+      issue = self.find_issue_by_id(issue.key)
 
       self.transist_to(issue, state)
     end

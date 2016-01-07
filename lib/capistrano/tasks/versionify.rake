@@ -42,8 +42,6 @@ namespace :versionify do
     version = manager.get_opened_version
 
     manager.assign_to_version(issue, version)
-
-    puts "Issue #{issue.key} assigned to version: #{version.name}"
   end
 
 
@@ -72,11 +70,13 @@ namespace :versionify do
 
     version = manager.get_opened_version
 
-    commits.scan(/\w{2,3}\-\d+/).each do |issue_id|
-      issue = manager.find_issue_by_id(issue_id)
-      manager.assign_to_version(issue, version)
-
-      puts "Issue #{issue.key} assigned to version: #{version.name}"
+    commits.scan(/\w{2,6}\-\d+/i).map(&:upcase).uniq.each do |issue_id|
+      begin
+        issue = manager.find_issue_by_id(issue_id)
+        manager.assign_to_version(issue, version)
+      rescue JIRA::HTTPError
+        puts "Skipping unrecognized issue: #{issue_id}"
+      end
     end
   end
 
@@ -114,9 +114,9 @@ namespace :load do
     set :versionify_jira_username, settings['jira']['username']
     set :versionify_jira_password, settings['jira']['password']
     set :versionify_jira_project_id, 'PRO'
-    set :versionify_jira_transision_map, {'10005' => 11, '3' => 21, '10435' => 31, '10434' => 91, '10436' => 111, '10432' => 61}
-    set :versionify_jira_relesable_status, 10432
-    set :versionify_jira_final_status, 10433
+    set :versionify_jira_transision_map, {'10005' => 11, '3' => 21, '4' => 71, '10435' => 31, '10434' => 91, '10436' => 111, '10432' => 61}
+    set :versionify_jira_relesable_status, '10432'
+    set :versionify_jira_final_status, '10433'
 
     set :versionify_cap_prepare_to, 'staging'
     set :versionify_cap_release_to, 'prod'
