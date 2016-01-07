@@ -83,7 +83,7 @@ module Versionify
 
 
     def assign_to_version(issue, version)
-      issue.save({'fields' => {'fixVersions' => [{'id': version.id}]}})
+      issue.save({'fields' => {'fixVersions' => [{'id' => version.id}]}})
 
       self.transist_to(issue, fetch(:versionify_jira_relesable_status))
 
