@@ -116,13 +116,19 @@ namespace :versionify do
       return
     end
 
-    Rake::Task['deploy'].invoke
+    # Rake::Task['deploy'].invoke
 
-    message = "#{version.name} of ##{fetch(:domain)}# has been deployed to ##{fetch(:stage)}#"
+    is_prod = fetch(:stage).to_s.eql? fetch(:versionify_cap_release_to).to_s
 
-    if :stage == :versionify_cap_release_to
+    message = is_prod ? "### New version of *#{fetch(:application)}* is live now!\n\n" : ""
+
+    message += "**#{version.name}** of *#{fetch(:application)}* has been deployed to **#{fetch(:stage)}** on http://#{fetch(:domain)}"
+
+    if is_prod
       version_url = manager.generator.version(version)
-      "\n\nVersion has been marked as released: #{version_url}"
+      message += "\n\n\n> Version has been marked as released: #{version_url}"
+      message += "\n\n\n\n**Full changelog:** \n\n"
+      message += manager.get_changelog(version)
     end
 
     manager.announce(
@@ -135,7 +141,14 @@ end
 
 namespace :load do
   task :defaults do
+    path =  File.expand_path('~/.versionify')
+    unless File.exist?(path)
+      puts "Missing configuration file ~/.versionify"
+      exit 1
+    end
+
     file = File.read(File.expand_path('~/.versionify'))
+
     settings = JSON.parse(file)
 
     set :versionify_podio_api_key, settings['podio']['api_key']
