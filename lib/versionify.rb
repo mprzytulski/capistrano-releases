@@ -119,7 +119,7 @@ module Versionify
       self.transist_to(issue, state)
     end
 
-    def announce(message, version)
+    def announce(message, version, comment = false)
       response = @client.get(
           "/rest/api/2/version/#{version.id}/remotelink"
       )
@@ -134,9 +134,11 @@ module Versionify
             {:podio_status_id => podio_status}.to_json
         )
       else
-        podio_link = links.detect { |link| link['link'].key?('podio_status_id') }
-        podio_id = podio_link['link']['podio_status_id']
-        @podio.comment(podio_id, 'test')
+        if comment
+          podio_link = links.detect { |link| link['link'].key?('podio_status_id') }
+          podio_id = podio_link['link']['podio_status_id']
+          @podio.comment(podio_id, message)
+        end
       end
 
       if links.each { |link| link.key?('slack') }.length == 0

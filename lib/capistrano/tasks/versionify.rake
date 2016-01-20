@@ -20,6 +20,7 @@ namespace :versionify do
       puts "URL: #{version_url}"
 
       Rake::Task['versionify:auto_assign'].invoke
+      Rake::Task['versionify:announce'].invoke
     end
   end
 
@@ -42,6 +43,13 @@ namespace :versionify do
     version = manager.get_opened_version
 
     manager.assign_to_version(issue, version)
+    message = "[#{issue.key}](#{manager.generator.issue(issue)}) - #{issue.summary}\n"
+
+    manager.announce(
+      message,
+      version,
+      true
+    )
   end
 
 
