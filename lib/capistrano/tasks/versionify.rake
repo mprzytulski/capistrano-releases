@@ -111,17 +111,25 @@ namespace :versionify do
 
     version = manager.get_opened_version
 
+    if version.nil?
+      puts "No active version"
+      return
+    end
+
     Rake::Task['deploy'].invoke
 
-    # message = "# #{fetch(:domain)} version announcement.\n\n"
-    # message += "New version: **#{version.name}** is being prepared for release.\n"
-    # message += "Changelog: \n"
-    # message += manager.get_changelog(version)
-    #
-    # manager.announce(
-    #     message,
-    #     version
-    # )
+    message = "#{version.name} of ##{fetch(:domain)}# has been deployed to ##{fetch(:stage)}#"
+
+    if :stage == :versionify_cap_release_to
+      version_url = manager.generator.version(version)
+      "\n\nVersion has been marked as released: #{version_url}"
+    end
+
+    manager.announce(
+        message,
+        version,
+        true
+    )
   end
 end
 
