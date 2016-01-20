@@ -59,6 +59,11 @@ module Versionify
 
 
     def get_changelog(version)
+      if version.nil?
+        puts "No active version"
+        return
+      end
+
       changelog = ""
       @client.Issue.jql("fixVersion = #{version.name}").each do |issue|
         changelog += " - [#{issue.key}](#{@generator.issue(issue)}) - #{issue.summary}\n"
@@ -128,6 +133,10 @@ module Versionify
             "/rest/api/2/version/#{version.id}/remotelink",
             {:podio_status_id => podio_status}.to_json
         )
+      else
+        podio_link = links.detect { |link| link['link'].key?('podio_status_id') }
+        podio_id = podio_link['link']['podio_status_id']
+        @podio.comment(podio_id, 'test')
       end
 
       if links.each { |link| link.key?('slack') }.length == 0
@@ -135,7 +144,6 @@ module Versionify
       end
 
     end
-
   end
 
   class PodioPublisher
@@ -159,6 +167,14 @@ module Versionify
           :value => message
         }
       )
+    end
+
+    def comment(status_id, message)
+      Podio::Comment.create(
+        'status',
+        status_id, {
+          :value => message
+        })
     end
   end
 

@@ -11,7 +11,7 @@ namespace :versionify do
       puts 'There is already opened version'
       Rake::Task['versionify:active_version'].invoke
     else
-      version_name = args[:version] || "#{fetch(:stage)}-" + Time.now.strftime("%Y%m%d_%H%M")
+      version_name = args[:version] || "v" + Time.now.strftime("%Y%m%d_%H%M")
       version = manager.create_version(version_name)
       version_url = manager.generator.version(version)
 
@@ -95,6 +95,25 @@ namespace :versionify do
         message,
         version
     )
+  end
+
+  desc 'Deploy'
+  task :deploy do
+    manager = Versionify::Manager.new(:self)
+
+    version = manager.get_opened_version
+
+    Rake::Task['deploy'].invoke
+
+    # message = "# #{fetch(:domain)} version announcement.\n\n"
+    # message += "New version: **#{version.name}** is being prepared for release.\n"
+    # message += "Changelog: \n"
+    # message += manager.get_changelog(version)
+    #
+    # manager.announce(
+    #     message,
+    #     version
+    # )
   end
 end
 
