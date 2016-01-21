@@ -1,3 +1,79 @@
-#!/usr/bin/evn bash
+#!/usr/bin/env bash
 
-echo "run forest, run!"
+# This file is a wrapper over capistrano command with lot of hardcoded values
+# - should be replaced with something smarter :/
+# Feel free to make any suggestions / improvements
+
+RUBY_CMD=""
+BUNDLE_CMD=""
+RBENV=`which rbenv`
+
+if [[ -x ${RBENV} ]]; then
+  RUBY_CMD="${RBENV} exec ruby"
+  BUNDLE_CMD="${RBENV} exec bundle"
+else
+  RUBY_CMD=`which ruby`
+  BUNDLE_CMD=`which bundle`
+fi
+
+
+function help {
+  cat <<HELP
+Usage: $0 <command> [arg..]
+Where command is one of:
+  prepare [version]     - Prepare new version and auto assign jira tasks based on git comments, by default use auto generated version
+  active_version        - Display details about current active version
+  assign jira_issue_id  - Assign given jira issue id to current active version
+  deploy [prod|staging] - Deploy project to given env - by default to staging
+HELP
+}
+
+function commands {
+  help | cut -d '#' -f 1 | tr -d ' ' | sed 's/\[.*\]//g' | tr -d ' '
+}
+
+if [ $# -eq 0 ]; then
+  help
+  exit 1
+fi
+
+CMD=${1}
+
+if [ `commands | grep $CMD | wc -l` -eq 0 ]; then
+  echo "Invalid command"
+  help
+  exit 2
+fi
+
+STAGE="staging"
+
+case $CMD in
+prepare)
+  EXEC="$BUNDLE_CMD exec cap ${STAGE} versionify:prepare"
+  if [ $2 -ne '' ]; then
+    EXEC+="[$2]"
+  fi
+  ;;
+active_version)
+  EXEC="$BUNDLE_CMD exec cap ${STAGE} versionify:active_version"
+  ;;
+assign)
+  if [ "$2" == "" ]; then
+    echo "Missing issue id, usage: $0 assign jira_issue_id"
+    exit 3
+  fi
+  EXEC="$BUNDLE_CMD exec cap ${STAGE} versionify:assign[$2]"
+  ;;
+deploy)
+  STAGE=${2:-$STAGE}
+  EXEC="$BUNDLE_CMD exec cap ${STAGE} versionify:deploy"
+  ;;
+*)
+  Invalid command
+  exit 2
+  ;;
+esac
+
+echo "Executing: $EXEC"
+
+$EXEC
