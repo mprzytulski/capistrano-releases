@@ -88,6 +88,11 @@ module Versionify
 
 
     def assign_to_version(issue, version)
+      if issue.fixVersions.size > 0 and issue.fixVersions.detect { |v| v.name.to_s.eql? version.name.to_s }.nil?
+        puts "Issue #{issue.key} already assigned to #{issue.fixVersions[0].name} version"
+        return
+      end
+
       if issue.save({'fields' => {'fixVersions' => [{'id' => version.id}]}})
         puts "Issue #{issue.key} assigned to version: #{version.name}"
 
