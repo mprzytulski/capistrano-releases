@@ -105,7 +105,7 @@ namespace :versionify do
     )
   end
 
-  desc 'Deploy'
+  desc 'Deploy project'
   task :deploy do
     manager = Versionify::Manager.new(:self)
 
@@ -116,9 +116,9 @@ namespace :versionify do
       return
     end
 
-    Rake::Task['deploy'].invoke
+    is_prod = fetch(:stage).to_s.eql? fetch(:versionify_cap_prepare_to).to_s
 
-    is_prod = fetch(:stage).to_s.eql? fetch(:versionify_cap_release_to).to_s
+    Rake::Task['deploy'].invoke
 
     message = is_prod ? "### New version of *#{fetch(:application)}* is live now!\n\n" : ""
 
@@ -152,6 +152,7 @@ namespace :load do
 
     settings = JSON.parse(file)
 
+    set :versionify_global_user, settings['global']['user']
     set :versionify_podio_api_key, settings['podio']['api_key']
     set :versionify_podio_api_secret, settings['podio']['api_secret']
     set :versionify_podio_username, settings['podio']['username']
@@ -172,5 +173,15 @@ namespace :load do
 
     set :versionify_slack_prepare_channel, '#test'
     set :versionify_slack_release_channel, '#test'
+    set :versionify_slack_api_token, settings['slack']['webhook']
+  end
+end
+
+
+namespace :deploy do
+  task :disallow_robots do
+    on roles(:web) do
+      execute "cd #{fetch(:release_path)} && echo -e \"User-agent: *\\nDisallow: /\\n \" > web/robots.txt"
+    end
   end
 end

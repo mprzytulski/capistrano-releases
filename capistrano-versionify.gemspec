@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |spec|
   spec.name          = 'capistrano-versionify'
-  spec.version       = '0.1.4'
+  spec.version       = '0.2.0'
   spec.authors       = ['mprzytulski']
   spec.email         = ['michal@przytulski.pl']
   spec.summary       = %q{Manage versions in jira}

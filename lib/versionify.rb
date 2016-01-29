@@ -189,13 +189,80 @@ module Versionify
   class SlackPublisher
     def initialize(project)
       @project = project
-
-
+      @channel = fetch(:versionify_slack_channel)
+      @webbook_url = fetch(:versionify_slack_url)
     end
 
     def publish(message)
+      self.post(message, @channel)
+    end
 
+    def comment(status_id, message)
+      self.post(message, @channel)
+    end
+
+    def post(message, channel)
+      uri = URI.parse(@webbook_url)
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true
+      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      request = Net::HTTP::Post.new(uri.path)
+      request.add_field('Content-Type', 'application/json')
+      request.body = message
+      response = http.request(request)
     end
   end
 
+end
+
+module CapistranoDeploytags
+  class Helper
+    def self.git_tag_for(stage)
+      "#{formatted_time}"
+    end
+
+    def self.formatted_time
+      now = if fetch(:deploytag_utc, true)
+              Time.now.utc
+            else
+              Time.now
+            end
+
+      now.strftime(fetch(:deploytag_time_format, "%Y.%m.%d-%H%M%S-#{now.zone.downcase}"))
+    end
+
+    def self.commit_message(current_sha, stage)
+      if fetch(:deploytag_commit_message, false)
+        deploytag_commit_message
+      else
+        "#{fetch(:user)} deployed #{current_sha} to #{stage}"
+      end
+    end
+  end
+end
+
+def username
+  ENV['DEPLOY_USER'] || fetch(:versionify_global_user) || `whoami`.chomp
+end
+
+def branch_name(default_branch)
+  branch = ENV.fetch('BRANCH', default_branch)
+
+  if branch == '.'
+    # current branch
+    `git rev-parse --abbrev-ref HEAD`.chomp
+  else
+    branch
+  end
+end
+
+def commit()
+  `git log -n 1 | head -n 1 | sed -e 's/^commit //' | head -c 8`.chomp
+end
+
+def active_version
+  manager = Versionify::Manager.new(:self)
+  version = manager.get_opened_version
+
+  version.name
 end
