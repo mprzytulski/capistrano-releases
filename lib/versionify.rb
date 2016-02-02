@@ -202,14 +202,14 @@ module Versionify
     end
 
     def post(message, channel)
-      uri = URI.parse(@webbook_url)
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-      request = Net::HTTP::Post.new(uri.path)
-      request.add_field('Content-Type', 'application/json')
-      request.body = message
-      response = http.request(request)
+      # uri = URI.parse(@webbook_url)
+      # http = Net::HTTP.new(uri.host, uri.port)
+      # http.use_ssl = true
+      # http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      # request = Net::HTTP::Post.new(uri.path)
+      # request.add_field('Content-Type', 'application/json')
+      # request.body = message
+      # response = http.request(request)
     end
   end
 

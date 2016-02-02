@@ -116,7 +116,7 @@ namespace :versionify do
       return
     end
 
-    is_prod = fetch(:stage).to_s.eql? fetch(:versionify_cap_prepare_to).to_s
+    is_prod = fetch(:stage).to_s.eql? fetch(:versionify_cap_release_to).to_s
 
     Rake::Task['deploy'].invoke
 
