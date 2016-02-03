@@ -3,8 +3,31 @@ require 'podio'
 require 'json'
 
 module Versionify
-  class Manager
+  class Announcer
+    def initialize()
+      @listeners = []
+    end
 
+    def add(announcer)
+      @listeners.append(announcer)
+    end
+
+    def announce(message)
+      @listeners.each do |l|
+        l.announce(message)
+      end
+    end
+  end
+
+    class Message
+      def initialize(body, version, comment)
+        @body = body
+        @version = version
+        @comment = comment
+      end
+    end
+
+  class Manager
     class UrlGenerator
       def initialize(project)
         @project = project
@@ -30,11 +53,12 @@ module Versionify
           :auth_type => :basic
       }
 
-      @client = JIRA::Client.new(options)
-      @project = @client.Project.find(fetch(:versionify_jira_project_id))
+      @jira = JIRA::Client.new(options)
+      @project = @jira.Project.find(fetch(:versionify_jira_project_id))
 
       @generator = UrlGenerator.new(@project)
       @podio = PodioPublisher.new(@project)
+      @slack = SlackPublisher.new(@project)
     end
 
 
@@ -46,7 +70,7 @@ module Versionify
         end
       end
 
-      version = @client.Version.build
+      version = @jira.Version.build
       version.save({
            'name' => name,
            'project' => @project.key
@@ -65,7 +89,7 @@ module Versionify
       end
 
       changelog = ""
-      @client.Issue.jql("fixVersion = #{version.name}").each do |issue|
+      @jira.Issue.jql("fixVersion = #{version.name}").each do |issue|
         changelog += " - [#{issue.key}](#{@generator.issue(issue)}) - #{issue.summary}\n"
       end
 
@@ -74,7 +98,7 @@ module Versionify
 
 
     def find_issue_by_id(id)
-      @client.Issue.find(id)
+      @jira.Issue.find(id)
     end
 
 
@@ -125,31 +149,54 @@ module Versionify
     end
 
     def announce(message, version, comment = false)
-      response = @client.get(
-          "/rest/api/2/version/#{version.id}/remotelink"
+      message = Message.new(message, version, comment)
+
+      announcer = Announcer.new
+      announcer.add(PodioAnnouncer.new(@podio, @jira))
+      announcer.add(SlackAnnouncer.new(@slack, :versionify_slack_channel))
+
+      announcer.announce(message)
+    end
+  end
+
+  class PodioAnnouncer
+    def initialize(podio_client, jira_client)
+      @podio = podio_client
+      @jira = jira_client
+    end
+
+    def announce(message)
+      response = @jira.get(
+          "/rest/api/2/version/#{message.version.id}/remotelink"
       )
 
       links = JSON.parse(response.body)['links']
 
       if links.each { |link| link.key?('podio_status_id') }.length == 0
-        podio_status = @podio.publish(message)
+        podio_status = @podio.publish(message.body)
 
-        @client.post(
-            "/rest/api/2/version/#{version.id}/remotelink",
+        @jira.post(
+            "/rest/api/2/version/#{message.version.id}/remotelink",
             {:podio_status_id => podio_status}.to_json
         )
       else
         if comment
           podio_link = links.detect { |link| link['link'].key?('podio_status_id') }
           podio_id = podio_link['link']['podio_status_id']
-          @podio.comment(podio_id, message)
+          @podio.comment(podio_id, message.body)
         end
       end
+    end
+  end
 
-      if links.each { |link| link.key?('slack') }.length == 0
+  class SlackAnnouncer
+    def initialize(slack_client, channel)
+      @slack = slack_client
+      @channel = channel
+    end
 
-      end
-
+    def announce(message)
+      @slack.publish(message.body)
     end
   end
 
@@ -212,7 +259,6 @@ module Versionify
       response = http.request(request)
     end
   end
-
 end
 
 module CapistranoDeploytags
