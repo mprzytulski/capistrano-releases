@@ -157,7 +157,7 @@ namespace :load do
     set :versionify_podio_api_secret, settings['podio']['api_secret']
     set :versionify_podio_username, settings['podio']['username']
     set :versionify_podio_password, settings['podio']['password']
-    set :versionify_podio_space_id, settings['podio']['space_id']
+    set :versionify_podio_space_id, 0
     set :versionify_podio_notify, ['@Team']
 
     set :versionify_jira_url, settings['jira']['url']
