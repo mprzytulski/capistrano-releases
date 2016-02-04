@@ -171,8 +171,8 @@ namespace :load do
     set :versionify_cap_prepare_to, 'staging'
     set :versionify_cap_release_to, 'prod'
 
-    set :versionify_slack_prepare_channel, '#test'
-    set :versionify_slack_release_channel, '#test'
+    set :versionify_slack_prepare_channel, settings['slack']['prepare_channel']
+    set :versionify_slack_release_channel, settings['slack']['release_channel']
     set :versionify_slack_api_token, settings['slack']['webhook']
   end
 end
