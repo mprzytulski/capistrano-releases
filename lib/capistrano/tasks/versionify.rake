@@ -128,6 +128,7 @@ namespace :versionify do
       message += "\n\n\n\n**Full changelog:** \n\n"
       message += manager.get_changelog(version)
 
+      manager.release_version(version)
     else
       message += "Updated version **#{version.name}** of *#{fetch(:application)}* has been deployed to **#{fetch(:stage)}** on http://#{fetch(:domain)}"
     end

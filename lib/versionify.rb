@@ -1,6 +1,7 @@
 require 'jira'
 require 'podio'
 require 'json'
+require 'date'
 
 module Versionify
   class Manager
@@ -97,12 +98,21 @@ module Versionify
         puts "Issue #{issue.key} assigned to version: #{version.name}"
 
         issue.fetch
-        self.transist_to(issue, fetch(:versionify_jira_relesable_status))
+        self.transist_to(issue, fetch(:versionify_jira_final_status))
       else
         puts "Failed to assign given issue (#{issue.key}) to version: #{version.id}"
       end
 
       issue
+    end
+
+    def release_version(version)
+      @client.Issue.jql("fixVersion = #{version.name}").each do |issue|
+        self.transist_to(issue, fetch(:versionify_jira_relesable_status))
+      end
+
+      current_time = DateTime.now
+      version.save({'released' => true, 'releaseDate' => current_time.strftime "%Y-%m-%d"})
     end
 
 
