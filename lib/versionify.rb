@@ -136,7 +136,7 @@ module Versionify
       end
 
       current_time = DateTime.now
-      version.save({'released' => true, 'releaseDate' => current_time.strftime "%Y-%m-%d"})
+      version.save({'released' => true, 'releaseDate' => current_time.strftime("%Y-%m-%d")})
     end
 
 
